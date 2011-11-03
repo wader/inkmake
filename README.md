@@ -38,7 +38,7 @@ Easiest usage is probably to download and copy `inkmake` to `/usr/local/bin` and
 
 ### Usage
 
-Default inkmake reads a file called "Inkfile" in the current directory and will read and output files relative to the directory containing the `Inkfile`. But you can both specify the `Inkfike` path as a last argument and also change the SVG source dirctory and output directory using the `--svg` and `--out` argument options.
+Default inkmake reads a file called "Inkfile" in the current directory and will read and output files relative to the directory containing the `Inkfile`. But you can both specify the `Inkfile` path as a last argument and also change the SVG source dirctory and output directory using the `--svg` and `--out` argument options.
 
 
 	Usage: ./inkmake [options] [Inkfile]
