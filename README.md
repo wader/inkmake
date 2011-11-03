@@ -181,7 +181,7 @@ Both SVG base path and output base path can be set from the `Inkfile` or with co
 
 ### Resolution and units
 
-Resolutions specified in the `Inkfile` without units or as `px` will always be absolute number of pixels in output image and will not change depending on scale and dpi. But note that default the SVG 
+Resolutions specified in the `Inkfile` without units or as `px` will always be absolute number of pixels in output image and will not change depending on scale and dpi.
 
 If you don't specify any resolution the resolution and units will depend on how its defined in the SVG file. In the case of SVG files saved by Inkscape this is most likely user units which is defined as pixels at 90dpi which inkmake will translate to absolute depending on scale and dpi if specified.
 
