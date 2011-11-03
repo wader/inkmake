@@ -34,7 +34,7 @@ On Mac OS X you should only need to install Inkscape. inkmake is written in Ruby
 
 ### Install
 
-Easiest usage is probably to download and copy `inkmake` to `/usr/local/bin` and make sure its in your shell `PATH` ([howto](http://serverfault.com/questions/16355/how-to-set-global-path-on-os-x/277034#277034)). You can also copy it somewhere else and use the full path when executing it.
+Easiest usage is probably to download and copy `inkmake` to `/usr/local/bin` and make sure executable `chmod a+x /usr/local/bin/inkmake` and is in your shell `PATH` ([howto](http://serverfault.com/questions/16355/how-to-set-global-path-on-os-x/277034#277034)). You can also copy it somewhere else and use the full path when executing it.
 
 ### Usage
 
