@@ -1,0 +1,36 @@
+out: out
+
+# test output formats
+test.png
+test.pdf
+test.ps
+test.eps
+
+# force format
+testpng test.svg png
+
+# res
+test-scale2[@2x|25=*2.5].png test.svg *2
+test-200x200[@2x].png test.svg 200x200
+test-scale2-200x200[@2x].png test.svg 200x200 *2
+
+# rotate
+test-left.png test.svg left
+test-right.png test.svg right
+test-upsidedown.png test.svg upsidedown
+
+# variants
+test-page[@2x|-scale3right=*3,right].png test.svg
+test-drawing[@2x|-scale3right=*3,right].png test.svg drawing
+test-id-upper[@2x|-scale3right=*3,right].png test.svg @upper 
+test-id-lower[@2x|-scale3right=*3,right].png test.svg @lower
+test-area[@2x|-scale3right=*3,right].png test.svg @0:25:100:75
+
+# units
+test[@2x|180=180dpi|270=270dpi]dpi.png test.svg 100dpi
+test4cm[180=180dpi]dpi.png test.svg 4cm*4cm
+test5cm[@2x|-180=180dpi]dpi.png test5cm.svg
+test5cm10cm[@2x|-180=180dpi]dpi.png 10cm*10cm test5cm.svg
+test5cm100x100[-200x200=200x200].png test5cm.svg 100x100 300dpi
+test5cm100uux100uu[@2x].png test5cm.svg 100uux100uu 
+
