@@ -28,7 +28,7 @@
 # version included in Mac OS X (at least Lion).
 #
 
-require 'CSV'
+require 'csv'
 require 'rexml/document'
 require 'open3'
 require 'optparse'
@@ -376,6 +376,28 @@ class InkFile
     l
   end
 
+  def rotate_image(path, degrees, res)
+    cmd = nil
+    if RUBY_PLATFORM.downcase.include? "darwin"
+      cmd =
+	"sips " +
+	"--rotate #{degrees}" +
+	"--resampleWidth #{degrees == 180 ? res[0] : res[1]}" +
+	"--resampleHeight #{degrees == 180 ? res[1] : res[0]}" +
+	" \"" + InkscapeRemote.escape(path) + "\"" +
+	" >/dev/null 2>&1"
+    else
+      cmd =
+	"convert" +
+	" \"" + InkscapeRemote.escape(path) + "\"" +
+	" -rotate #{degrees}" +
+	" \"" + InkscapeRemote.escape(path) + "\""
+    end
+    if not system(cmd)
+      raise ProcessError, "Failed to rotate (#{cmd})"
+    end
+  end
+
   def process
     variants = variants_to_generate
     if variants.empty?
@@ -436,18 +458,9 @@ class InkFile
 	})
 
 	if variant.image.format == "png"
-	  r = variant.options[:rotate]
-	  if r
-	    cmd =
-	      "sips " +
-	      "--rotate #{r.to_s}" +
-	      "--resampleWidth #{(r == 180 ? res[0] : res[1]).to_i.to_s}" +
-	      "--resampleHeight #{(r == 180 ? res[1] : res[0]).to_i.to_s}" +
-	      " \"" + InkscapeRemote.escape(variant.out_path) + "\"" +
-	      " >/dev/null 2>&1"
-	    if not system(cmd)
-	      raise ProcessError, "Failed to run sips (#{cmd})"
-	    end
+	  rotate = variant.options[:rotate]
+	  if rotate
+	    rotate_image(variant.out_path, rotate, res)
 	  end
 	end
 
