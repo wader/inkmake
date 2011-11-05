@@ -28,13 +28,15 @@ With inkmake you describe what you want to export and how using a `Inkfile` and 
     
 ### Requirements
 
-Currently only Mac OS X is supported.
+Currently inkmake should work on Mac OS X, Linux and BSD variants.
 
-On Mac OS X you should only need to install Inkscape. inkmake is written in Ruby and should work with the default Ruby version included in Mac OS X.
+On Mac OS X you only need to install Inkscape. inkmake is written in Ruby and should work with the default Ruby version included in Mac OS X.
+
+On Linux and BSD variants you need to install Inkscape and Imagemagick and make sure they are in the shell `PATH`.
 
 ### Install
 
-Easiest usage is probably to download and copy `inkmake` to `/usr/local/bin` and make sure executable `chmod a+x /usr/local/bin/inkmake` and is in your shell `PATH` ([howto](http://serverfault.com/questions/16355/how-to-set-global-path-on-os-x/277034#277034)). You can also copy it somewhere else and use the full path when executing it.
+Easiest usage is probably to download and copy `inkmake` to `/usr/local/bin` and make sure its executable `chmod a+x /usr/local/bin/inkmake` and is in your shell `PATH` ([Mac OS X how to](http://serverfault.com/questions/16355/how-to-set-global-path-on-os-x/277034#277034)). You can also copy it somewhere else and use the full path when executing it.
 
 ### Usage
 
@@ -187,6 +189,5 @@ If you don't specify any resolution the resolution and units will depend on how 
 
 ### TODO
 
- Linux support  
  Windows support  
  Plain SVG output? does not work with areas
