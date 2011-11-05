@@ -258,7 +258,6 @@ class InkFile
   
   class ProcessError < StandardError
   end
-  
 
   def initialize(file, opts)
     @file = file
@@ -287,9 +286,18 @@ class InkFile
     @svg_path = opts[:svg_path] || svg_path || File.dirname(file)
     @out_path = opts[:out_path] || out_path || File.dirname(file)
   end
+
+  def parse_split_line(line)
+    # changed CSV API in ruby 1.9
+    if RUBY_VERSION.start_with? "1.9"
+      CSV::parse_line(line, {:col_sep => " "})
+    else
+      CSV::parse_line(line, fs = " ")
+    end
+  end
   
   def parse_line(line)
-    cols = CSV::parse_line(line, fs = " ") # {:col_sep => " "}  if 1.9
+    cols = parse_split_line(line)
     raise SyntaxError, "Invalid number of columns" if cols.count < 1
 
     if not DEST_RE.match(cols[0])
