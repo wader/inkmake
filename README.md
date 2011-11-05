@@ -28,11 +28,18 @@ With inkmake you describe what you want to export and how using a `Inkfile` and 
     
 ### Requirements
 
-Currently inkmake should work on Mac OS X, Linux and BSD variants.
+Currently inkmake should work on Mac OS X, Linux, BSD variants and with some effort even on Windows.
 
-On Mac OS X you only need to install Inkscape. inkmake is written in Ruby and should work with the default Ruby version included in Mac OS X.
+On Mac OS X you only need to install Inkscape. inkmake is written in Ruby and should work with the default Ruby version included in Mac OS X. ImageMagick is not needed.
 
-On Linux and BSD variants you need to install Inkscape and Imagemagick and make sure they are in the shell `PATH`.
+On Linux and BSD variants you need to install Inkscape and ImageMagick and make sure they are in the shell `PATH`.
+
+On Windows you need to install [Ruby](http://rubyinstaller.org), Inkscape and ImageMagick. You probably also want to rename `inkmake` to `inkmake.rb` and associate `.rb` with Ruby.
+
+As Administrator run this in a `cmd` prompt, Ruby install path may be different.
+
+    $ assoc .rb=RubyScript
+    $ ftype RubyScript="c:\Ruby139\bin\ruby.exe" "%1" %*
 
 ### Install
 
@@ -189,5 +196,4 @@ If you don't specify any resolution the resolution and units will depend on how 
 
 ### TODO
 
- Windows support  
  Plain SVG output? does not work with areas

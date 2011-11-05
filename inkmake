@@ -97,7 +97,7 @@ end
 
 class InkscapeRemote
   def initialize
-    @in, @out, @err = Open3.popen3([self.class.path, "--shell"].join(" "))
+    @in, @out, @err = Open3.popen3("\"#{InkscapeRemote.escape(self.class.path)}\" --shell")
     loop do
       case response
       when :prompt then break
@@ -205,8 +205,11 @@ class InkscapeRemote
     return $inkscape_path if defined? $inkscape_path
 
     # try to figure out inkscape path
-    p = ((["/Applications/Inkscape.app/Contents/Resources/bin/inkscape"] + 
-	  (ENV['PATH'].split(':').map {|p| p+'/inkscape'})).select do |path|
+    p = (([
+	  "/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
+	  'c:\Program Files\Inkscape\inkscape.exe', 
+    	  'c:\Program Files (x86)\Inkscape\inkscape.exe'] + 
+	  (ENV['PATH'].split(':').map {|p| File.join(p, "inkscape")})).select do |path|
 	    File.exists? path
 	  end).first
     if p
