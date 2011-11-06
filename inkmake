@@ -399,7 +399,7 @@ class InkFile
       "<g>" +
       "<image transform=\"translate(#{out_width/2} #{out_height/2}) rotate(#{degrees})\"" +
       "  width=\"#{width}\" height=\"#{height}\" x=\"#{-width/2}\" y=\"#{-height/2}\"" +
-      "  xlink:href=\"file://#{URI.escape(path)}\" />" +
+      "  xlink:href=\"file:///#{URI.escape(path)}\" />" +
       "</g>" +
       "</svg>"
     f = Tempfile.new("inkmake")
