@@ -15,7 +15,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.1 r9760"
-   sodipodi:docname="test.svg">
+   sodipodi:docname="test5cm.svg">
   <defs
      id="defs4">
     <linearGradient
@@ -218,14 +218,14 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="4.43"
+     inkscape:zoom="2.91"
      inkscape:cx="21.304585"
-     inkscape:cy="50"
+     inkscape:cy="90.924384"
      inkscape:document-units="px"
-     inkscape:current-layer="layer2"
+     inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1287"
-     inkscape:window-height="804"
+     inkscape:window-width="1486"
+     inkscape:window-height="898"
      inkscape:window-x="1454"
      inkscape:window-y="70"
      inkscape:window-maximized="0" />
@@ -237,7 +237,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -245,9 +245,10 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(0,-952.3622)">
+     transform="translate(0,-952.3622)"
+     style="display:inline">
     <g
-       transform="matrix(3.5668001,0,0,3.5668001,-3.7394609,-2697.956)"
+       transform="matrix(6.6369553,0,0,6.6369553,-10.917844,-5845.0481)"
        id="layer1-7"
        inkscape:label="Layer 1">
       <g
