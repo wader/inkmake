@@ -32,7 +32,7 @@ Currently inkmake should work on Mac OS X, Linux, BSD variants and with some eff
 
 On Mac OS X you only need to install Inkscape. inkmake is written in Ruby and should work with the default Ruby version included in Mac OS X.
 
-On Linux and BSD variants you need to install Inkscape and make sure they are in the shell `PATH`.
+On Linux and BSD variants you need to install Ruby and Inkscape and make sure they are in the shell `PATH`.
 
 On Windows you need to install [Ruby](http://rubyinstaller.org) and Inkscape. You probably also want to rename `inkmake` to `inkmake.rb` and associate `.rb` with Ruby.
 
