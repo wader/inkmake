@@ -27,12 +27,19 @@
 # Try to stay campatible with Ruby 1.8.7 as its the default ruby
 # version included in Mac OS X (at least Lion).
 #
+# NOTE: Rotation is done using a temporary SVG file that translate and rotate
+# a double resolution bitmap and export as a bitmap to the correct resolution.
+# This hack is done to get around that Inkscape cant set bitmap oversampling
+# mode per file or from command line, defualt is 2x2 oversampling.
+#
 
 require 'csv'
 require 'rexml/document'
 require 'open3'
 require 'optparse'
 require 'fileutils'
+require 'tempfile'
+require 'uri'
 
 class InkscapeUnit
   # 90dpi as reference
@@ -138,8 +145,9 @@ class InkscapeRemote
       "--export-#{opts[:format]}" => opts[:out_path]
     }
     if opts[:res]
-      c["--export-width"] = opts[:res].width.to_pixels(opts[:dpi] || 90)
-      c["--export-height"] = opts[:res].height.to_pixels(opts[:dpi] || 90)
+      s = opts[:rotate_scale_hack] ? 2 : 1
+      c["--export-width"] = opts[:res].width.to_pixels(opts[:dpi] || 90) * s
+      c["--export-height"] = opts[:res].height.to_pixels(opts[:dpi] || 90) * s
     end
     if opts[:dpi]
       c["--export-dpi"] = opts[:dpi]
@@ -379,26 +387,25 @@ class InkFile
     l
   end
 
-  def rotate_image(path, degrees, res)
-    cmd = nil
-    if RUBY_PLATFORM.downcase.include? "darwin"
-      cmd =
-	"sips " +
-	"--rotate #{degrees}" +
-	"--resampleWidth #{degrees == 180 ? res[0] : res[1]}" +
-	"--resampleHeight #{degrees == 180 ? res[1] : res[0]}" +
-	" \"" + InkscapeRemote.escape(path) + "\"" +
-	" >/dev/null 2>&1"
+  def temp_rotate_svg(path, degrees, width, height)
+    if degrees != 180
+      out_width, out_height = height, width
     else
-      cmd =
-	"convert" +
-	" \"" + InkscapeRemote.escape(path) + "\"" +
-	" -rotate #{degrees}" +
-	" \"" + InkscapeRemote.escape(path) + "\""
+      out_width, out_height = width, height
     end
-    if not system(cmd)
-      raise ProcessError, "Failed to rotate (#{cmd})"
-    end
+    svg = 
+      "<?xml version=\"1.0\"?>" +
+      "<svg xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"#{out_width}\" height=\"#{out_height}\">" +
+      "<g>" +
+      "<image transform=\"translate(#{out_width/2} #{out_height/2}) rotate(#{degrees})\"" +
+      "  width=\"#{width}\" height=\"#{height}\" x=\"#{-width/2}\" y=\"#{-height/2}\"" +
+      "  xlink:href=\"file://#{URI.escape(path)}\" />" +
+      "</g>" +
+      "</svg>"
+    f = Tempfile.new("inkmake")
+    f.write(svg)
+    f.seek(0)
+    [f, out_width, out_height]
   end
 
   def process
@@ -449,22 +456,29 @@ class InkFile
 
 	out_res = variant.options[:res] if variant.options[:res]
 
-	FileUtils.mkdir_p File.dirname(variant.out_path)
+	rotate = (variant.image.format == "png" and variant.options[:rotate])
 
+	FileUtils.mkdir_p File.dirname(variant.out_path)
+	
 	name, res = inkscape.export({
 	  :svg_path => variant.image.svg_path,
 	  :out_path => variant.out_path,
 	  :res => out_res,
 	  :dpi => variant.options[:dpi],
 	  :format => variant.image.format,
-	  :area => variant.image.area
+	  :area => variant.image.area,
+	  :rotate_scale_hack => rotate
 	})
 
-	if variant.image.format == "png"
-	  rotate = variant.options[:rotate]
-	  if rotate
-	    rotate_image(variant.out_path, rotate, res)
-	  end
+	if rotate
+	  tmp, width, height = temp_rotate_svg(variant.out_path, rotate, res[0].to_i, res[1].to_i)
+	  name, res = inkscape.export({
+	    :svg_path => tmp.path,
+	    :out_path => variant.out_path,
+	    :res => InkscapeResolution.new(width / 2, height / 2, "px"),
+	    :format => variant.image.format
+	  })
+	  tmp.close!
 	end
 
 	if name and res
