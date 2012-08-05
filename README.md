@@ -25,7 +25,7 @@ With inkmake you describe what you want to export and how using a `Inkfile` and 
 
     # read SVG files from to the child directory "resources" relative to the Inkfile
     svg: resources
-    
+
 ### Requirements
 
 Currently inkmake should work on Mac OS X, Linux, BSD variants and with some effort even on Windows.
@@ -42,6 +42,12 @@ As Administrator run this in a `cmd` prompt, Ruby install path may be different.
     $ ftype RubyScript="c:\Ruby139\bin\ruby.exe" "%1" %*
 
 ### Install
+
+Homebrew:
+
+	$ brew install --HEAD https://raw.github.com/wader/inkmake/master/homebrew/inkmake.rb
+
+Manually:
 
 Easiest usage is probably to download and copy `inkmake` to `/usr/local/bin` and make sure its executable `chmod a+x /usr/local/bin/inkmake` and is in your shell `PATH` ([Mac OS X how to](http://serverfault.com/questions/16355/how-to-set-global-path-on-os-x/277034#277034)). You can also copy it somewhere else and use the full path when executing it.
 
