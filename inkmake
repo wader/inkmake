@@ -118,9 +118,9 @@ class InkscapeRemote
   def command(args)
     c = args.collect do |key, value|
       if value
-	"\"#{key}=#{self.class.escape value.to_s}\""
+        "\"#{key}=#{self.class.escape value.to_s}\""
       else
-	key
+        key
       end
     end.join(" ")
     puts "> #{c}" if $verbose
@@ -165,10 +165,10 @@ class InkscapeRemote
     loop do
       case response
       when /^Bitmap saved as: (.*)$/ then
-	out = $1
+        out = $1
       when /^Area .* exported to (\d+) x (\d+) pixels.*$/ then
-	width = $1
-	height = $2
+        width = $1
+        height = $2
       when :prompt then break
       end
     end
@@ -214,20 +214,20 @@ class InkscapeRemote
 
     # try to figure out inkscape path
     p = (([
-	  "/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
-	  'c:\Program Files\Inkscape\inkscape.exe', 
-    	  'c:\Program Files (x86)\Inkscape\inkscape.exe'] + 
-	  (ENV['PATH'].split(':').map {|p| File.join(p, "inkscape")})).select do |path|
-	    File.exists? path
-	  end).first
+          "/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
+          'c:\Program Files\Inkscape\inkscape.exe', 
+          'c:\Program Files (x86)\Inkscape\inkscape.exe'] + 
+          (ENV['PATH'].split(':').map {|p| File.join(p, "inkscape")})).select do |path|
+            File.exists? path
+          end).first
     if p
       p
     else
       begin
-	require 'osx/cocoa'
-	"#{OSX::NSWorkspace.sharedWorkspace.fullPathForApplication:"Inkscape"}/Contents/Resources/bin/inkscape"
+        require 'osx/cocoa'
+        "#{OSX::NSWorkspace.sharedWorkspace.fullPathForApplication:"Inkscape"}/Contents/Resources/bin/inkscape"
       rescue NameError, LoadError
-	nil
+        nil
       end
     end
   end
@@ -281,15 +281,15 @@ class InkFile
       line.strip!
       next if line.empty? or line.start_with? "#"
       begin
-	case line
-	when /^svg:(.*)/i then svg_path = File.expand_path($1.strip, File.dirname(file))
-	when /^out:(.*)/i then out_path = File.expand_path($1.strip, File.dirname(file))
-	else
-	  @images << InkImage.new(self, parse_line(line))
-	end
+        case line
+        when /^svg:(.*)/i then svg_path = File.expand_path($1.strip, File.dirname(file))
+        when /^out:(.*)/i then out_path = File.expand_path($1.strip, File.dirname(file))
+        else
+          @images << InkImage.new(self, parse_line(line))
+        end
       rescue SyntaxError => e
-	puts "#{file}:#{index+1}: #{e.message}"
-	exit
+        puts "#{file}:#{index+1}: #{e.message}"
+        exit
       end
     end
 
@@ -333,7 +333,7 @@ class InkFile
       when SCALE_RE then opts[:scale] = $1.to_f
       when DPI_RE then opts[:dpi] = $1.to_f
       else
-	raise SyntaxError, "Unknown column \"#{col}\""
+        raise SyntaxError, "Unknown column \"#{col}\""
       end
     end
     
@@ -345,21 +345,21 @@ class InkFile
     opts[:variants] = variants.collect do |variant|
       name, options = variant.split("=", 2)
       if options
-	options = Hash[
-	  options.split(",").map do |option|
-	    case option
-	    when ROTATE_RE then [:rotate, Rotations[$1]]
-	    when RES_RE then [:res, InkscapeResolution.new($1, $2, "px")]
-	    when SCALE_RE then [:scale, $1.to_f]
-	    when DPI_RE then [:dpi, $1.to_f]
-	    else
-	      raise SyntaxError, "Invalid variant option \"#{option}\""
-	    end
-	  end
-	]
+        options = Hash[
+          options.split(",").map do |option|
+            case option
+            when ROTATE_RE then [:rotate, Rotations[$1]]
+            when RES_RE then [:res, InkscapeResolution.new($1, $2, "px")]
+            when SCALE_RE then [:scale, $1.to_f]
+            when DPI_RE then [:dpi, $1.to_f]
+            else
+              raise SyntaxError, "Invalid variant option \"#{option}\""
+            end
+          end
+        ]
       else
-	options = DefaultVariants[name]
-	raise SyntaxError, "Invalid default variant \"#{name}\"" if not options
+        options = DefaultVariants[name]
+        raise SyntaxError, "Invalid default variant \"#{name}\"" if not options
       end
 
       [name, options]
@@ -372,15 +372,15 @@ class InkFile
     l = []
     @images.each do |image|
       image.variants.each do |variant|
-	next if not @force and 
-	  File.exists? variant.out_path and
-	  File.mtime(variant.out_path) > File.mtime(image.svg_path) and
-	  File.mtime(variant.out_path) > File.mtime(@file)
-	if variant.out_path == image.svg_path
-	  raise ProcessError, "Avoiding overwriting source SVG file #{image.svg_path}"
-	end
-	
-	l << variant
+        next if not @force and 
+          File.exists? variant.out_path and
+          File.mtime(variant.out_path) > File.mtime(image.svg_path) and
+          File.mtime(variant.out_path) > File.mtime(@file)
+        if variant.out_path == image.svg_path
+          raise ProcessError, "Avoiding overwriting source SVG file #{image.svg_path}"
+        end
+        
+        l << variant
       end
     end
 
@@ -417,75 +417,75 @@ class InkFile
     idfilemap = {}
     InkscapeRemote.new do |inkscape|
       variants.each do |variant|
-	if not File.exists? variant.image.svg_path
-	  raise ProcessError, "Source SVG file #{variant.image.svg_path} does not exist"
-	end
+        if not File.exists? variant.image.svg_path
+          raise ProcessError, "Source SVG file #{variant.image.svg_path} does not exist"
+        end
 
-	out_res = nil
-	# order: 200x200, @id/area, svg res
-	if variant.image.res
-	  out_res = variant.image.res
-	elsif variant.image.area == :drawing
-	  res = inkscape.drawing_area(variant.image.svg_path)
-	  out_res = InkscapeResolution.new(res[2], res[3], "uu") 
-	elsif variant.image.area
-	  if variant.image.area.kind_of? String
-	    if not idfilemap.has_key? variant.image.svg_path
-	      idfilemap[variant.image.svg_path] = inkscape.ids(variant.image.svg_path)
-	    end
+        out_res = nil
+        # order: 200x200, @id/area, svg res
+        if variant.image.res
+          out_res = variant.image.res
+        elsif variant.image.area == :drawing
+          res = inkscape.drawing_area(variant.image.svg_path)
+          out_res = InkscapeResolution.new(res[2], res[3], "uu") 
+        elsif variant.image.area
+          if variant.image.area.kind_of? String
+            if not idfilemap.has_key? variant.image.svg_path
+              idfilemap[variant.image.svg_path] = inkscape.ids(variant.image.svg_path)
+            end
 
-	    if not idfilemap[variant.image.svg_path].has_key? variant.image.area
-	      raise ProcessError, "Unknown id \"#{variant.image.area}\" in file #{variant.image.svg_path} when exporting #{variant.out_path}"
-	    end
+            if not idfilemap[variant.image.svg_path].has_key? variant.image.area
+              raise ProcessError, "Unknown id \"#{variant.image.area}\" in file #{variant.image.svg_path} when exporting #{variant.out_path}"
+            end
 
-	    res = idfilemap[variant.image.svg_path][variant.image.area]
-	    out_res = InkscapeResolution.new(res[2], res[3], "uu")
-	  else
-	    a = variant.image.area
-	    # x0:y0:x1:y1
-	    out_res = InkscapeResolution.new(a[2]-a[0], a[3]-a[1], "uu") 
-	  end
-	else
-	  out_res = variant.image.svg_res
-	end
+            res = idfilemap[variant.image.svg_path][variant.image.area]
+            out_res = InkscapeResolution.new(res[2], res[3], "uu")
+          else
+            a = variant.image.area
+            # x0:y0:x1:y1
+            out_res = InkscapeResolution.new(a[2]-a[0], a[3]-a[1], "uu") 
+          end
+        else
+          out_res = variant.image.svg_res
+        end
 
-	scale = variant.options[:scale]
-	if scale
-	  out_res = out_res.scale(scale)
-	end
+        scale = variant.options[:scale]
+        if scale
+          out_res = out_res.scale(scale)
+        end
 
-	out_res = variant.options[:res] if variant.options[:res]
+        out_res = variant.options[:res] if variant.options[:res]
 
-	rotate = (variant.image.format == "png" and variant.options[:rotate])
+        rotate = (variant.image.format == "png" and variant.options[:rotate])
 
-	FileUtils.mkdir_p File.dirname(variant.out_path)
-	
-	name, res = inkscape.export({
-	  :svg_path => variant.image.svg_path,
-	  :out_path => variant.out_path,
-	  :res => out_res,
-	  :dpi => variant.options[:dpi],
-	  :format => variant.image.format,
-	  :area => variant.image.area,
-	  :rotate_scale_hack => rotate
-	})
+        FileUtils.mkdir_p File.dirname(variant.out_path)
+        
+        name, res = inkscape.export({
+          :svg_path => variant.image.svg_path,
+          :out_path => variant.out_path,
+          :res => out_res,
+          :dpi => variant.options[:dpi],
+          :format => variant.image.format,
+          :area => variant.image.area,
+          :rotate_scale_hack => rotate
+        })
 
-	if rotate
-	  tmp, width, height = temp_rotate_svg(variant.out_path, rotate, res[0].to_i, res[1].to_i)
-	  name, res = inkscape.export({
-	    :svg_path => tmp.path,
-	    :out_path => variant.out_path,
-	    :res => InkscapeResolution.new(width / 2, height / 2, "px"),
-	    :format => variant.image.format
-	  })
-	  tmp.close!
-	end
+        if rotate
+          tmp, width, height = temp_rotate_svg(variant.out_path, rotate, res[0].to_i, res[1].to_i)
+          name, res = inkscape.export({
+            :svg_path => tmp.path,
+            :out_path => variant.out_path,
+            :res => InkscapeResolution.new(width / 2, height / 2, "px"),
+            :format => variant.image.format
+          })
+          tmp.close!
+        end
 
-	if name and res
-	  puts "#{name} #{res[0]}x#{res[1]}"
-	else
-	  puts variant.out_path
-	end
+        if name and res
+          puts "#{name} #{res[0]}x#{res[1]}"
+        else
+          puts variant.out_path
+        end
       end
     end
 
@@ -522,13 +522,13 @@ class InkImage
   def svg_res
     @svg_res ||= 
       begin
-	doc = REXML::Document.new File.read(svg_path)
-	svgattr = doc.elements.to_a("//svg")[0].attributes
-	if svgattr["width"] and svgattr["height"]
-	  InkscapeResolution.new(svgattr["width"], svgattr["height"], "uu")
-	else
-	  nil
-	end
+        doc = REXML::Document.new File.read(svg_path)
+        svgattr = doc.elements.to_a("//svg")[0].attributes
+        if svgattr["width"] and svgattr["height"]
+          InkscapeResolution.new(svgattr["width"], svgattr["height"], "uu")
+        else
+          nil
+        end
       end
   end
 end
