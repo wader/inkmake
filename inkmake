@@ -30,7 +30,7 @@
 # NOTE: Rotation is done using a temporary SVG file that translate and rotate
 # a double resolution bitmap and export as a bitmap to the correct resolution.
 # This hack is done to get around that Inkscape cant set bitmap oversampling
-# mode per file or from command line, defualt is 2x2 oversampling.
+# mode per file or from command line, default is 2x2 oversampling.
 #
 
 require 'csv'
