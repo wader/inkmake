@@ -300,10 +300,10 @@ class InkFile
 
   def parse_split_line(line)
     # changed CSV API in ruby 1.9
-    if RUBY_VERSION.start_with? "1.9"
-      CSV::parse_line(line, {:col_sep => " "})
-    else
+    if RUBY_VERSION.start_with? "1.8"
       CSV::parse_line(line, fs = " ")
+    else
+      CSV::parse_line(line, {:col_sep => " "})
     end
   end
   
