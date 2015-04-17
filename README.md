@@ -138,7 +138,7 @@ All available options:
 	</tr>
 	<tr>
   	<td><code>layer@name</code></td>
-  	<td>Export layer with display name defined by <code>name</code> in Inkscape layers dialog.</td>
+  	<td>Export layer with display name defined by <code>name</code> in Inkscape layers dialog. Note for layers with spaces in the name replace the spaces (<code> </code>)with underscores (<code>_</code>). For example <code>Layer 1</code> should be specified by <code>Layer_1</code></td>
   </tr>
 
 </table>
