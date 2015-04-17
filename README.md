@@ -136,6 +136,11 @@ All available options:
 		<td><code>180dpi</code</td>
 		<td>Change dots per inch when rendering non-pixel units (default is 90dpi).</td>
 	</tr>
+	<tr>
+  	<td><code>layer@name</code></td>
+  	<td>Export layer with display name defined by <code>name</code> in Inkscape layers dialog.</td>
+  </tr>
+
 </table>
 
 

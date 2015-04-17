@@ -1,0 +1,7 @@
+# variants
+
+# hidden layer should cause error
+#test-layer[@2x|-scale3right=*3,right].png test.svg layer@rects
+
+#visible layer should export
+test-layer[@2x|-scale3right=*3,right].png test.svg layer@Layer_1

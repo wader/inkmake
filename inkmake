@@ -41,6 +41,8 @@ require 'fileutils'
 require 'tempfile'
 require 'uri'
 
+include REXML
+
 class InkscapeUnit
   # 90dpi as reference
   Units = {
@@ -159,6 +161,13 @@ class InkscapeRemote
     elsif opts[:area].kind_of? String
       c["--export-id"] = opts[:area]
     end
+
+    if opts[:layer]
+      c["--export-area-page"] = nil
+      c["--export-id-only"] = nil
+      c["--export-id"] = opts[:layer]
+    end
+
     command(c)
     width, height = [0, 0]
     out = nil
@@ -263,6 +272,8 @@ class InkFile
   AREA_SPEC_RE=/^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
   # right, left, upsidedown
   ROTATE_RE=/^(right|left|upsidedown)$/
+  # inkscape layer label name
+  LAYER_NAME_RE=/^layer@(.*)$/
 
   class SyntaxError < StandardError
   end
@@ -327,6 +338,7 @@ class InkFile
       when SVG_RE then opts[:svg] = col
       when AREA_SPEC_RE then opts[:area] = [$1.to_f, $2.to_f, $3.to_f, $4.to_f]
       when AREA_NAME_RE then opts[:area] = $1
+      when LAYER_NAME_RE then opts[:layer] = $1
       when /^drawing$/ then opts[:area] = :drawing
       when FORMAT_RE then opts[:format] = $1.downcase
       when ROTATE_RE then opts[:rotate] = Rotations[$1]
@@ -421,6 +433,37 @@ class InkFile
           raise ProcessError, "Source SVG file #{variant.image.svg_path} does not exist"
         end
 
+        visibleLayerId = nil
+        if variant.options[:layer]
+          xmlfile = File.new(variant.image.svg_path)
+          xmldoc = Document.new(xmlfile)
+
+          nameWithSpacesCorrected = variant.options[:layer].gsub( /_/, ' ')
+
+
+          XPath.each(xmldoc, "//svg:g[@inkscape:groupmode='layer']") {
+            |e|
+            currentElementLabelName = e.attributes['inkscape:label']
+            if currentElementLabelName == variant.options[:layer] || currentElementLabelName == nameWithSpacesCorrected
+              if visibleLayerId.nil?
+                if e.attributes.include?( "style" ) && e.attributes["style"].include?( "display:none" )
+                  raise ProcessError, "specified layer is hidden (name: #{ variant.options[:layer] } and id: #{e.attributes['id']})"
+                else
+                  visibleLayerId = e.attributes['id']
+                  puts "found layer for name name '#{variant.options[:layer]}' with id #{visibleLayerId }"
+                end
+              else
+                raise ProcessError, "Multiple layers with same name '#{variant.options[:layer]}'(ids: #{visibleLayerId } and #{e.attributes['id']})"
+              end
+            end
+          }
+
+          if visibleLayerId.nil?
+            raise ProcessError, "Zero layers with name '#{variant.options[:layer]}'"
+          end
+        end
+
+
         out_res = nil
         # order: 200x200, @id/area, svg res
         if variant.image.res
@@ -467,7 +510,8 @@ class InkFile
           :dpi => variant.options[:dpi],
           :format => variant.image.format,
           :area => variant.image.area,
-          :rotate_scale_hack => rotate
+          :rotate_scale_hack => rotate,
+          :layer => visibleLayerId
         })
 
         if rotate
@@ -502,7 +546,8 @@ class InkImage
     variant_opts = {
       :rotate => opts[:rotate],
       :scale => opts[:scale],
-      :dpi => opts[:dpi]
+      :dpi => opts[:dpi],
+      :layer => opts[:layer]
     }
     @variants = [InkVariant.new(self, "", variant_opts)]
     opts[:variants].each do |name, options|
