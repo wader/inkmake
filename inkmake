@@ -104,15 +104,20 @@ end
 
 class InkscapeRemote
   def initialize
-    @in, @out, @err = Open3.popen3("\"#{InkscapeRemote.escape(self.class.path)}\" --shell")
+    open
+    probe_decimal_symbol
+    yield self
+  ensure
+    quit
+  end
+
+  def open
+    @in, @out, @err = Open3.popen3(*[self.class.path, "--shell"])
     loop do
       case response
       when :prompt then break
       end
     end
-    yield self
-  ensure
-    quit
   end
 
   def command(args)
@@ -138,7 +143,33 @@ class InkscapeRemote
     puts "< #{o}" if $verbose
     o
   end
-  
+
+  # this is weird but is the least weird and most protable way i could come up with
+  # to figuring out what decimal symbol to use.
+  # forcing LC_NUMERIC=C seems hard to do in a portable way
+  # trying to use env inkmake is running in is also not so portable (windows?)
+  def probe_decimal_symbol
+    svg =
+      "<?xml version=\"1.0\"?>" +
+      "<svg xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"1\" height=\"1\">" +
+      "</svg>"
+    f = Tempfile.new("inkmake")
+    f.write(svg)
+    begin
+      command({
+        "--file" => f.path,
+        "--export-png" => Tempfile.new("inkmake").path,
+        "--export-area" => "0.0:0.0:1.0:1.0",
+      })
+      response
+      @decimal_symbol = "."
+    rescue EOFError
+      @decimal_symbol = ","
+      # restart inkscape
+      open
+    end
+  end
+
   def export(opts)
     c = {
       "--file" => opts[:svg_path],
@@ -153,7 +184,7 @@ class InkscapeRemote
       c["--export-dpi"] = opts[:dpi]
     end
     if opts[:area].kind_of? Array
-      c["--export-area"] = "%f:%f:%f:%f" % opts[:area]
+      c["--export-area"] = ("%f:%f:%f:%f" % opts[:area]).gsub(".", @decimal_symbol)
     elsif opts[:area] == :drawing
       c["--export-area-drawing"] = nil
     elsif opts[:area].kind_of? String
