@@ -215,8 +215,8 @@ class InkscapeRemote
     # try to figure out inkscape path
     p = (([
           "/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
-          'c:\Program Files\Inkscape\inkscape.exe', 
-          'c:\Program Files (x86)\Inkscape\inkscape.exe'] + 
+          'c:\Program Files\Inkscape\inkscape.exe',
+          'c:\Program Files (x86)\Inkscape\inkscape.exe'] +
           (ENV['PATH'].split(':').map {|p| File.join(p, "inkscape")})).select do |path|
             File.exists? path
           end).first
@@ -266,7 +266,7 @@ class InkFile
 
   class SyntaxError < StandardError
   end
-  
+
   class ProcessError < StandardError
   end
 
@@ -306,7 +306,7 @@ class InkFile
       CSV::parse_line(line, {:col_sep => " "})
     end
   end
-  
+
   def parse_line(line)
     cols = parse_split_line(line)
     raise SyntaxError, "Invalid number of columns" if cols.count < 1
@@ -336,11 +336,11 @@ class InkFile
         raise SyntaxError, "Unknown column \"#{col}\""
       end
     end
-    
+
     if not opts[:format]
       raise SyntaxError, "Unknown or no output format could be determined"
     end
-    
+
     variants = (variants.split("|") if variants) || []
     opts[:variants] = variants.collect do |variant|
       name, options = variant.split("=", 2)
@@ -379,7 +379,7 @@ class InkFile
         if variant.out_path == image.svg_path
           raise ProcessError, "Avoiding overwriting source SVG file #{image.svg_path}"
         end
-        
+
         l << variant
       end
     end
@@ -427,7 +427,7 @@ class InkFile
           out_res = variant.image.res
         elsif variant.image.area == :drawing
           res = inkscape.drawing_area(variant.image.svg_path)
-          out_res = InkscapeResolution.new(res[2], res[3], "uu") 
+          out_res = InkscapeResolution.new(res[2], res[3], "uu")
         elsif variant.image.area
           if variant.image.area.kind_of? String
             if not idfilemap.has_key? variant.image.svg_path
@@ -443,7 +443,7 @@ class InkFile
           else
             a = variant.image.area
             # x0:y0:x1:y1
-            out_res = InkscapeResolution.new(a[2]-a[0], a[3]-a[1], "uu") 
+            out_res = InkscapeResolution.new(a[2]-a[0], a[3]-a[1], "uu")
           end
         else
           out_res = variant.image.svg_res
@@ -459,7 +459,7 @@ class InkFile
         rotate = (variant.image.format == "png" and variant.options[:rotate])
 
         FileUtils.mkdir_p File.dirname(variant.out_path)
-        
+
         name, res = inkscape.export({
           :svg_path => variant.image.svg_path,
           :out_path => variant.out_path,
@@ -495,7 +495,7 @@ end
 
 class InkImage
   attr_reader :inkfile, :prefix, :variants, :suffix, :res, :format, :area
-  
+
   def initialize(inkfile, opts)
     @inkfile = inkfile
     @prefix = opts[:prefix]
