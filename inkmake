@@ -96,7 +96,7 @@ class InkscapeResolution
   def scale(f)
     InkscapeResolution.new(@width.scale(f), @height.scale(f))
   end
-  
+
   def to_s
     "#{@width.to_s}x#{@height.to_s}"
   end
@@ -289,11 +289,11 @@ class InkFile
   # supported inkscape output formats
   FORMAT_RE = /^(png|pdf|ps|eps)$/i
   # @name
-  AREA_NAME_RE=/^@(.*)$/
+  AREA_NAME_RE = /^@(.*)$/
   # @x:y:w:h
-  AREA_SPEC_RE=/^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
+  AREA_SPEC_RE = /^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
   # right, left, upsidedown
-  ROTATE_RE=/^(right|left|upsidedown)$/
+  ROTATE_RE = /^(right|left|upsidedown)$/
 
   class SyntaxError < StandardError
   end
@@ -403,7 +403,7 @@ class InkFile
     l = []
     @images.each do |image|
       image.variants.each do |variant|
-        next if not @force and 
+        next if not @force and
           File.exists? variant.out_path and
           File.mtime(variant.out_path) > File.mtime(image.svg_path) and
           File.mtime(variant.out_path) > File.mtime(@file)
@@ -551,7 +551,7 @@ class InkImage
   end
 
   def svg_res
-    @svg_res ||= 
+    @svg_res ||=
       begin
         doc = REXML::Document.new File.read(svg_path)
         svgattr = doc.elements.to_a("//svg")[0].attributes
