@@ -41,6 +41,7 @@ require 'optparse'
 require 'fileutils'
 require 'tempfile'
 require 'uri'
+require 'pathname'
 
 class InkscapeUnit
   # 90dpi as reference
@@ -206,7 +207,7 @@ class InkscapeRemote
       end
     end
 
-    [out, [width, height]]
+    [width, height]
   end
 
   def query_all(file)
@@ -516,7 +517,7 @@ class InkFile
           svg_path = variant.image.svg_showhide_file.path
         end
 
-        name, res = inkscape.export({
+        res = inkscape.export({
           :svg_path => svg_path,
           :out_path => variant.out_path,
           :res => out_res,
@@ -528,7 +529,7 @@ class InkFile
 
         if rotate
           tmp, width, height = temp_rotate_svg(variant.out_path, rotate, res[0].to_i, res[1].to_i)
-          name, res = inkscape.export({
+          res = inkscape.export({
             :svg_path => tmp.path,
             :out_path => variant.out_path,
             :res => InkscapeResolution.new(width / 2, height / 2, "px"),
@@ -537,10 +538,11 @@ class InkFile
           tmp.close!
         end
 
-        if name and res
-          puts "#{name} #{res[0]}x#{res[1]}"
+        rel_path = Pathname.new(variant.out_path).relative_path_from(Pathname.new(Dir.pwd))
+        if variant.image.format == "png"
+          puts "#{rel_path} #{res[0]}x#{res[1]}"
         else
-          puts variant.out_path
+          puts rel_path
         end
       end
     end
