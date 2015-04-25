@@ -339,7 +339,12 @@ class InkFile
   end
 
   def parse_line(line)
-    cols = parse_split_line(line)
+    cols = nil
+    begin
+      cols = parse_split_line(line)
+    rescue CSV::MalformedCSVError => e
+      raise SyntaxError, e.message
+    end
     raise SyntaxError, "Invalid number of columns" if cols.count < 1
 
     if not DEST_RE.match(cols[0])
