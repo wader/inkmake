@@ -3,7 +3,7 @@
 # inkmake - Makefile inspired export from SVG files using Inkscape as backend
 #           with some added smartness.
 #
-# Copyright (c) 2011 <mattias.wadman@gmail.com>
+# Copyright (c) 2015 <mattias.wadman@gmail.com>
 #
 # MIT License:
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,6 +35,7 @@
 
 require 'csv'
 require 'rexml/document'
+require 'rexml/xpath'
 require 'open3'
 require 'optparse'
 require 'fileutils'
@@ -295,6 +296,8 @@ class InkFile
   AREA_SPEC_RE = /^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
   # right, left, upsidedown
   ROTATE_RE = /^(right|left|upsidedown)$/
+  # show/hide layer or id, "+Layer 1", +#id, -*
+  SHOWHIDE_RE = /^([+-])(.+)$/
 
   class SyntaxError < StandardError
   end
@@ -369,6 +372,16 @@ class InkFile
       when ROTATE_RE then opts[:rotate] = Rotations[$1]
       when SCALE_RE then opts[:scale] = $1.to_f
       when DPI_RE then opts[:dpi] = $1.to_f
+      when SHOWHIDE_RE
+        op = $1 == "+" ? :show : :hide
+        if $2.start_with? "#"
+          type = :id
+          name= $2[1..-1]
+        else
+          type = :layer
+          name = $2 == "*" ? :all : $2
+        end
+        (opts[:showhide] ||= []).push({:op => op, :type => type, :name => name})
       else
         raise SyntaxError, "Unknown column \"#{col}\""
       end
@@ -498,8 +511,13 @@ class InkFile
 
         FileUtils.mkdir_p File.dirname(variant.out_path)
 
+        svg_path = variant.image.svg_path
+        if variant.image.showhide
+          svg_path = variant.image.svg_showhide_file.path
+        end
+
         name, res = inkscape.export({
-          :svg_path => variant.image.svg_path,
+          :svg_path => svg_path,
           :out_path => variant.out_path,
           :res => out_res,
           :dpi => variant.options[:dpi],
@@ -532,7 +550,7 @@ class InkFile
 end
 
 class InkImage
-  attr_reader :inkfile, :prefix, :variants, :suffix, :res, :format, :area
+  attr_reader :inkfile, :prefix, :variants, :suffix, :res, :format, :area, :showhide
 
   def initialize(inkfile, opts)
     @inkfile = inkfile
@@ -551,6 +569,7 @@ class InkImage
     @svg = opts[:svg]
     @format = opts[:format]
     @area = opts[:area]
+    @showhide = opts[:showhide]
   end
 
   def svg_path
@@ -567,6 +586,63 @@ class InkImage
         else
           nil
         end
+      end
+  end
+
+  def svg_showhide_file
+    @svg_showhide_file ||=
+      begin
+        doc = REXML::Document.new File.read(svg_path)
+
+        layers = {}
+        REXML::XPath.each(doc, "//svg:g[@inkscape:groupmode='layer']").each do |e|
+          label = e.attributes["label"]
+          next if not label
+          layers[label] = e
+        end
+
+        ids = {}
+        REXML::XPath.each(doc, "//svg:*[@id]").each do |e|
+          id = e.attributes["id"]
+          next if not id
+          ids[id] = e
+        end
+
+        @showhide.each do |sh|
+          elms = nil
+          if sh[:type] == :layer
+            if sh[:name] == :all
+              elms = layers.values
+            else
+              e = layers[sh[:name]]
+              if not e
+                raise InkFile::ProcessError, "Layer \"#{sh[:name]}\" not found in #{svg_path}"
+              end
+              elms = [e]
+            end
+          else
+            e = ids[sh[:name]]
+            if not e
+              raise InkFile::ProcessError, "Id \"#{sh[:name]}\" not found in #{svg_path}"
+            end
+            elms = [e]
+          end
+
+          elms.each do |e|
+            # NOTE: should be visibility for #ids to not affect flow etc?
+            e.delete_attribute("display")
+            if sh[:op] == :hide
+              e.add_attribute("display", "none")
+            else
+              # show is a nop
+            end
+          end
+        end
+
+        f = Tempfile.new("inkmake")
+        doc.write(:output => f)
+        f.flush
+        f
       end
   end
 end

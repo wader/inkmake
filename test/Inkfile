@@ -34,3 +34,12 @@ test5cm10cm[@2x|-180=180dpi]dpi.png 10cm*10cm test5cm.svg
 test5cm100x100[-200x200=200x200].png test5cm.svg 100x100 300dpi
 test5cm100uux100uu[@2x].png test5cm.svg 100uux100uu
 
+# show/hide layers
+layers2.png -* "+Layer 2" layers.svg
+layers13.png "-Layer 2" layers.svg
+layers13[@2x|upsidedown=upsidedown].png "-Layer 2" layers.svg
+
+# show/hide ids
+id_hide_g2.png -#g2 ids.svg
+id_hide_id3.png -#id3 ids.svg
+
