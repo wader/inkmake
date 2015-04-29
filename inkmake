@@ -641,7 +641,7 @@ class InkImage
                 if( thePieces.length == 2 && thePieces[ 0 ] == 'display')
                   #throw it out
                 else
-                  theSubElementsToKeep.add( subElement )
+                  theSubElementsToKeep.push( subElement )
                 end
 
               end
