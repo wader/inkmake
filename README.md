@@ -20,10 +20,13 @@ With inkmake you describe what you want to export and how using a `Inkfile` and 
     # will generate files duck.png, duck@2x.png and duck-right.png from animals.svg using area id @duck
     images/duck[@2x|-right=*3,right].png animals.svg @duck
 
+    # will generate duckhead.png with only layer "Duck head" visible
+    duckhead.png -* "+Duck head" duck.svg
+
     # output files relative to the parent directory of the Inkfile
     out: ../
 
-    # read SVG files from to the child directory "resources" relative to the Inkfile
+    # read SVG files from to the directory "resources" relative to the Inkfile
     svg: resources
 
 ### Requirements
@@ -111,6 +114,13 @@ All available options:
 	<tr>
 		<td><code>*2</code>, <code>*2.5</code></td>
 		<td>Scale output when using non-pixel units.</td>
+	</tr>
+	<tr>
+		<td><code>+layer/*</code>, <code>-layer/*</code>, <code>+#id</code>, <code>-#id</code></td>
+		<td>
+			Show or hide layer or id. <code>*</code> hides or shows all layers.
+			Are processed in order so you can do <code>-* "+Layer 1"</code> to only show "Layer 1"</code>. Use quotes if layer or id name has white space.
+		</td>
 	</tr>
 	<tr>
 		<td><code>drawing</code></td>

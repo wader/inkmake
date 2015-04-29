@@ -22,7 +22,7 @@ test-upsidedown.png test.svg upsidedown
 # variants
 test-page[@2x|-scale3right=*3,right].png test.svg
 test-drawing[@2x|-scale3right=*3,right].png test.svg drawing
-test-id-upper[@2x|-scale3right=*3,right].png test.svg @upper 
+test-id-upper[@2x|-scale3right=*3,right].png test.svg @upper
 test-id-lower[@2x|-scale3right=*3,right].png test.svg @lower
 test-area[@2x|-scale3right=*3,right].png test.svg @0:25:100:75
 
@@ -32,5 +32,14 @@ test4cm[180=180dpi]dpi.png test.svg 4cm*4cm
 test5cm[@2x|-180=180dpi]dpi.png test5cm.svg
 test5cm10cm[@2x|-180=180dpi]dpi.png 10cm*10cm test5cm.svg
 test5cm100x100[-200x200=200x200].png test5cm.svg 100x100 300dpi
-test5cm100uux100uu[@2x].png test5cm.svg 100uux100uu 
+test5cm100uux100uu[@2x].png test5cm.svg 100uux100uu
+
+# show/hide layers
+layers2.png -* "+Layer 2" layers.svg
+layers13.png "-Layer 2" layers.svg
+layers13[@2x|upsidedown=upsidedown].png "-Layer 2" layers.svg
+
+# show/hide ids
+id_hide_g2.png -#g2 ids.svg
+id_hide_id3.png -#id3 ids.svg
 

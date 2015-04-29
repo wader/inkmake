@@ -3,7 +3,7 @@
 # inkmake - Makefile inspired export from SVG files using Inkscape as backend
 #           with some added smartness.
 #
-# Copyright (c) 2011 <mattias.wadman@gmail.com>
+# Copyright (c) 2015 <mattias.wadman@gmail.com>
 #
 # MIT License:
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,11 +35,13 @@
 
 require 'csv'
 require 'rexml/document'
+require 'rexml/xpath'
 require 'open3'
 require 'optparse'
 require 'fileutils'
 require 'tempfile'
 require 'uri'
+require 'pathname'
 
 class InkscapeUnit
   # 90dpi as reference
@@ -96,7 +98,7 @@ class InkscapeResolution
   def scale(f)
     InkscapeResolution.new(@width.scale(f), @height.scale(f))
   end
-  
+
   def to_s
     "#{@width.to_s}x#{@height.to_s}"
   end
@@ -104,15 +106,20 @@ end
 
 class InkscapeRemote
   def initialize
-    @in, @out, @err = Open3.popen3("\"#{InkscapeRemote.escape(self.class.path)}\" --shell")
+    open
+    probe_decimal_symbol
+    yield self
+  ensure
+    quit
+  end
+
+  def open
+    @in, @out, @err = Open3.popen3(*[self.class.path, "--shell"])
     loop do
       case response
       when :prompt then break
       end
     end
-    yield self
-  ensure
-    quit
   end
 
   def command(args)
@@ -138,7 +145,34 @@ class InkscapeRemote
     puts "< #{o}" if $verbose
     o
   end
-  
+
+  # this is weird but is the least weird and most protable way i could come up with
+  # to figuring out what decimal symbol to use.
+  # forcing LC_NUMERIC=C seems hard to do in a portable way
+  # trying to use env inkmake is running in is also not so portable (windows?)
+  def probe_decimal_symbol
+    svg =
+      "<?xml version=\"1.0\"?>" +
+      "<svg xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"1\" height=\"1\">" +
+      "</svg>"
+    f = Tempfile.new("inkmake")
+    f.write(svg)
+    f.flush
+    begin
+      command({
+        "--file" => f.path,
+        "--export-png" => Tempfile.new("inkmake").path,
+        "--export-area" => "0.0:0.0:1.0:1.0",
+      })
+      response
+      @decimal_symbol = "."
+    rescue EOFError
+      @decimal_symbol = ","
+      # restart inkscape
+      open
+    end
+  end
+
   def export(opts)
     c = {
       "--file" => opts[:svg_path],
@@ -153,7 +187,7 @@ class InkscapeRemote
       c["--export-dpi"] = opts[:dpi]
     end
     if opts[:area].kind_of? Array
-      c["--export-area"] = "%f:%f:%f:%f" % opts[:area]
+      c["--export-area"] = ("%f:%f:%f:%f" % opts[:area]).gsub(".", @decimal_symbol)
     elsif opts[:area] == :drawing
       c["--export-area-drawing"] = nil
     elsif opts[:area].kind_of? String
@@ -173,7 +207,7 @@ class InkscapeRemote
       end
     end
 
-    [out, [width, height]]
+    [width, height]
   end
 
   def query_all(file)
@@ -215,8 +249,8 @@ class InkscapeRemote
     # try to figure out inkscape path
     p = (([
           "/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
-          'c:\Program Files\Inkscape\inkscape.exe', 
-          'c:\Program Files (x86)\Inkscape\inkscape.exe'] + 
+          'c:\Program Files\Inkscape\inkscape.exe',
+          'c:\Program Files (x86)\Inkscape\inkscape.exe'] +
           (ENV['PATH'].split(':').map {|p| File.join(p, "inkscape")})).select do |path|
             File.exists? path
           end).first
@@ -258,15 +292,17 @@ class InkFile
   # supported inkscape output formats
   FORMAT_RE = /^(png|pdf|ps|eps)$/i
   # @name
-  AREA_NAME_RE=/^@(.*)$/
+  AREA_NAME_RE = /^@(.*)$/
   # @x:y:w:h
-  AREA_SPEC_RE=/^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
+  AREA_SPEC_RE = /^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
   # right, left, upsidedown
-  ROTATE_RE=/^(right|left|upsidedown)$/
+  ROTATE_RE = /^(right|left|upsidedown)$/
+  # show/hide layer or id, "+Layer 1", +#id, -*
+  SHOWHIDE_RE = /^([+-])(.+)$/
 
   class SyntaxError < StandardError
   end
-  
+
   class ProcessError < StandardError
   end
 
@@ -306,9 +342,14 @@ class InkFile
       CSV::parse_line(line, {:col_sep => " "})
     end
   end
-  
+
   def parse_line(line)
-    cols = parse_split_line(line)
+    cols = nil
+    begin
+      cols = parse_split_line(line)
+    rescue CSV::MalformedCSVError => e
+      raise SyntaxError, e.message
+    end
     raise SyntaxError, "Invalid number of columns" if cols.count < 1
 
     if not DEST_RE.match(cols[0])
@@ -332,15 +373,25 @@ class InkFile
       when ROTATE_RE then opts[:rotate] = Rotations[$1]
       when SCALE_RE then opts[:scale] = $1.to_f
       when DPI_RE then opts[:dpi] = $1.to_f
+      when SHOWHIDE_RE
+        op = $1 == "+" ? :show : :hide
+        if $2.start_with? "#"
+          type = :id
+          name= $2[1..-1]
+        else
+          type = :layer
+          name = $2 == "*" ? :all : $2
+        end
+        (opts[:showhide] ||= []).push({:op => op, :type => type, :name => name})
       else
         raise SyntaxError, "Unknown column \"#{col}\""
       end
     end
-    
+
     if not opts[:format]
       raise SyntaxError, "Unknown or no output format could be determined"
     end
-    
+
     variants = (variants.split("|") if variants) || []
     opts[:variants] = variants.collect do |variant|
       name, options = variant.split("=", 2)
@@ -372,14 +423,14 @@ class InkFile
     l = []
     @images.each do |image|
       image.variants.each do |variant|
-        next if not @force and 
+        next if not @force and
           File.exists? variant.out_path and
           File.mtime(variant.out_path) > File.mtime(image.svg_path) and
           File.mtime(variant.out_path) > File.mtime(@file)
         if variant.out_path == image.svg_path
           raise ProcessError, "Avoiding overwriting source SVG file #{image.svg_path}"
         end
-        
+
         l << variant
       end
     end
@@ -404,6 +455,7 @@ class InkFile
       "</svg>"
     f = Tempfile.new("inkmake")
     f.write(svg)
+    f.flush
     f.seek(0)
     [f, out_width, out_height]
   end
@@ -427,7 +479,7 @@ class InkFile
           out_res = variant.image.res
         elsif variant.image.area == :drawing
           res = inkscape.drawing_area(variant.image.svg_path)
-          out_res = InkscapeResolution.new(res[2], res[3], "uu") 
+          out_res = InkscapeResolution.new(res[2], res[3], "uu")
         elsif variant.image.area
           if variant.image.area.kind_of? String
             if not idfilemap.has_key? variant.image.svg_path
@@ -443,7 +495,7 @@ class InkFile
           else
             a = variant.image.area
             # x0:y0:x1:y1
-            out_res = InkscapeResolution.new(a[2]-a[0], a[3]-a[1], "uu") 
+            out_res = InkscapeResolution.new(a[2]-a[0], a[3]-a[1], "uu")
           end
         else
           out_res = variant.image.svg_res
@@ -459,9 +511,14 @@ class InkFile
         rotate = (variant.image.format == "png" and variant.options[:rotate])
 
         FileUtils.mkdir_p File.dirname(variant.out_path)
-        
-        name, res = inkscape.export({
-          :svg_path => variant.image.svg_path,
+
+        svg_path = variant.image.svg_path
+        if variant.image.showhide
+          svg_path = variant.image.svg_showhide_file.path
+        end
+
+        res = inkscape.export({
+          :svg_path => svg_path,
           :out_path => variant.out_path,
           :res => out_res,
           :dpi => variant.options[:dpi],
@@ -472,7 +529,7 @@ class InkFile
 
         if rotate
           tmp, width, height = temp_rotate_svg(variant.out_path, rotate, res[0].to_i, res[1].to_i)
-          name, res = inkscape.export({
+          res = inkscape.export({
             :svg_path => tmp.path,
             :out_path => variant.out_path,
             :res => InkscapeResolution.new(width / 2, height / 2, "px"),
@@ -481,10 +538,11 @@ class InkFile
           tmp.close!
         end
 
-        if name and res
-          puts "#{name} #{res[0]}x#{res[1]}"
+        rel_path = Pathname.new(variant.out_path).relative_path_from(Pathname.new(Dir.pwd))
+        if variant.image.format == "png"
+          puts "#{rel_path} #{res[0]}x#{res[1]}"
         else
-          puts variant.out_path
+          puts rel_path
         end
       end
     end
@@ -494,8 +552,8 @@ class InkFile
 end
 
 class InkImage
-  attr_reader :inkfile, :prefix, :variants, :suffix, :res, :format, :area
-  
+  attr_reader :inkfile, :prefix, :variants, :suffix, :res, :format, :area, :showhide
+
   def initialize(inkfile, opts)
     @inkfile = inkfile
     @prefix = opts[:prefix]
@@ -513,6 +571,7 @@ class InkImage
     @svg = opts[:svg]
     @format = opts[:format]
     @area = opts[:area]
+    @showhide = opts[:showhide]
   end
 
   def svg_path
@@ -520,7 +579,7 @@ class InkImage
   end
 
   def svg_res
-    @svg_res ||= 
+    @svg_res ||=
       begin
         doc = REXML::Document.new File.read(svg_path)
         svgattr = doc.elements.to_a("//svg")[0].attributes
@@ -529,6 +588,63 @@ class InkImage
         else
           nil
         end
+      end
+  end
+
+  def svg_showhide_file
+    @svg_showhide_file ||=
+      begin
+        doc = REXML::Document.new File.read(svg_path)
+
+        layers = {}
+        REXML::XPath.each(doc, "//svg:g[@inkscape:groupmode='layer']").each do |e|
+          label = e.attributes["label"]
+          next if not label
+          layers[label] = e
+        end
+
+        ids = {}
+        REXML::XPath.each(doc, "//svg:*[@id]").each do |e|
+          id = e.attributes["id"]
+          next if not id
+          ids[id] = e
+        end
+
+        @showhide.each do |sh|
+          elms = nil
+          if sh[:type] == :layer
+            if sh[:name] == :all
+              elms = layers.values
+            else
+              e = layers[sh[:name]]
+              if not e
+                raise InkFile::ProcessError, "Layer \"#{sh[:name]}\" not found in #{svg_path}"
+              end
+              elms = [e]
+            end
+          else
+            e = ids[sh[:name]]
+            if not e
+              raise InkFile::ProcessError, "Id \"#{sh[:name]}\" not found in #{svg_path}"
+            end
+            elms = [e]
+          end
+
+          elms.each do |e|
+            # NOTE: should be visibility for #ids to not affect flow etc?
+            e.delete_attribute("display")
+            if sh[:op] == :hide
+              e.add_attribute("display", "none")
+            else
+              # show is a nop
+            end
+          end
+        end
+
+        f = Tempfile.new("inkmake")
+        doc.write(:output => f)
+        f.flush
+        f
       end
   end
 end
