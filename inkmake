@@ -278,7 +278,7 @@ class InkFile
     "upsidedown" => 180
   }
   # 123x123, 12.3cm*12.3cm
-  RES_RE = /^(\d+(?:\.\d+)?(?:px|pt|pc|mm|cm|dm|m|in|ft|uu)?)[x*](\d+(?:\.\d+)?(?:px|pt|pc|mm|cm|dm|m|in|ft|uu)?)$/ 
+  RES_RE = /^(\d+(?:\.\d+)?(?:px|pt|pc|mm|cm|dm|m|in|ft|uu)?)[x*](\d+(?:\.\d+)?(?:px|pt|pc|mm|cm|dm|m|in|ft|uu)?)$/
   # *123, *1.23
   SCALE_RE = /^\*(\d+(?:\.\d+)?)$/
   # 180dpi
@@ -444,7 +444,7 @@ class InkFile
     else
       out_width, out_height = width, height
     end
-    svg = 
+    svg =
       "<?xml version=\"1.0\"?>" +
       "<svg xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"#{out_width}\" height=\"#{out_height}\">" +
       "<g>" +
@@ -633,6 +633,22 @@ class InkImage
           elms.each do |e|
             # NOTE: should be visibility for #ids to not affect flow etc?
             e.delete_attribute("display")
+            if( e.attributes["style"] )
+              theStyleSubElements = e.attributes["style"].split( ';')
+              theSubElementsToKeep = []
+              theStyleSubElements.each do | subElement |
+                thePieces = subElement.split( ':')
+                if( thePieces.length == 2 && thePieces[ 0 ] == 'display')
+                  #throw it out
+                else
+                  theSubElementsToKeep.add( subElement )
+                end
+
+              end
+              theNewStyleValue = theSubElementsToKeep.join( ';')
+              e.attributes["style"] = theNewStyleValue
+
+            end
             if sh[:op] == :hide
               e.add_attribute("display", "none")
             else
