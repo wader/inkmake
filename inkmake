@@ -633,20 +633,20 @@ class InkImage
           elms.each do |e|
             # NOTE: should be visibility for #ids to not affect flow etc?
             e.delete_attribute("display")
-            if( e.attributes["style"] )
-              theStyleSubElements = e.attributes["style"].split( ';')
-              theSubElementsToKeep = []
-              theStyleSubElements.each do | subElement |
-                thePieces = subElement.split( ':')
-                if( thePieces.length == 2 && thePieces[ 0 ] == 'display')
+            if e.attributes["style"]
+              style_declarations = e.attributes["style"].split( ';')
+              style_declarations_to_keep = []
+              style_declarations.each do | sd |
+                property, value = sd.split(":", 2)
+                if property && value && property == 'display'
                   #throw it out
                 else
-                  theSubElementsToKeep.push( subElement )
+                  style_declarations_to_keep.push( sd )
                 end
 
               end
-              theNewStyleValue = theSubElementsToKeep.join( ';')
-              e.attributes["style"] = theNewStyleValue
+              new_style_declarations = style_declarations_to_keep.join( ';')
+              e.attributes["style"] = new_style_declarations
 
             end
             if sh[:op] == :hide
