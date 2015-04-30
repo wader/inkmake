@@ -213,3 +213,5 @@ If you don't specify any resolution the resolution and units will depend on how 
 ### TODO
 
  Plain SVG output? does not work with areas
+
+ A bit overengeering but it seems Inkscape export is single threaded. We could use multiple shells to speed things up.
