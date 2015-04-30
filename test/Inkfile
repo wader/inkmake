@@ -35,6 +35,7 @@ test5cm100x100[-200x200=200x200].png test5cm.svg 100x100 300dpi
 test5cm100uux100uu[@2x].png test5cm.svg 100uux100uu
 
 # show/hide layers
+layers4.png -* "+Layer 4" layers.svg
 layers2.png -* "+Layer 2" layers.svg
 layers13.png "-Layer 2" layers.svg
 layers13[@2x|upsidedown=upsidedown].png "-Layer 2" layers.svg
