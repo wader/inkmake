@@ -635,20 +635,17 @@ class InkImage
             e.delete_attribute("display")
             # also remove display inside style attributes
             if e.attributes["style"]
-              style_declarations = e.attributes["style"].split( ';')
+              style_declarations = e.attributes["style"].split(";")
               style_declarations_to_keep = []
               style_declarations.each do | sd |
                 property, value = sd.split(":", 2)
-                if property && value && property == 'display'
-                  #throw it out
+                if value && property == "display"
+                  # throw it out
                 else
-                  style_declarations_to_keep.push( sd )
+                  style_declarations_to_keep.push(sd)
                 end
-
               end
-              new_style_declarations = style_declarations_to_keep.join( ';')
-              e.attributes["style"] = new_style_declarations
-
+              e.attributes["style"] = style_declarations_to_keep.join(";")
             end
             if sh[:op] == :hide
               e.add_attribute("display", "none")
