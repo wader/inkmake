@@ -633,6 +633,7 @@ class InkImage
           elms.each do |e|
             # NOTE: should be visibility for #ids to not affect flow etc?
             e.delete_attribute("display")
+            # also remove display inside style attributes
             if e.attributes["style"]
               style_declarations = e.attributes["style"].split( ';')
               style_declarations_to_keep = []
