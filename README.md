@@ -31,28 +31,15 @@ With inkmake you describe what you want to export and how using a `Inkfile` and 
 
 ### Requirements
 
-Currently inkmake should work on Mac OS X, Linux, BSD variants and with some effort even on Windows.
+Make sure Inkscape is installed.
 
-On Mac OS X you only need to install Inkscape. inkmake is written in Ruby and should work with the default Ruby version included in Mac OS X.
+On Mac OS X, Linux and BSD Ruby might already be installed by default. If not use homebrew, apt, ports, etc to install it.
 
-On Linux and BSD variants you need to install Ruby and Inkscape and make sure they are in the shell `PATH`.
-
-On Windows you need to install [Ruby](http://rubyinstaller.org) and Inkscape. You probably also want to rename `inkmake` to `inkmake.rb` and associate `.rb` with Ruby.
-
-As Administrator run this in a `cmd` prompt, Ruby install path may be different.
-
-    $ assoc .rb=RubyScript
-    $ ftype RubyScript="c:\Ruby139\bin\ruby.exe" "%1" %*
+On Windows you can use [Ruby installer](http://rubyinstaller.org).
 
 ### Install
 
-Homebrew:
-
-	$ brew install --HEAD https://raw.github.com/wader/inkmake/master/homebrew/inkmake.rb
-
-Manually:
-
-Easiest usage is probably to download and copy `inkmake` to `/usr/local/bin` and make sure its executable `chmod a+x /usr/local/bin/inkmake` and is in your shell `PATH` ([Mac OS X how to](http://serverfault.com/questions/16355/how-to-set-global-path-on-os-x/277034#277034)). You can also copy it somewhere else and use the full path when executing it.
+	gem install inkmake
 
 ### Usage
 
@@ -209,6 +196,10 @@ Both SVG base path and output base path can be set from the `Inkfile` or with co
 Resolutions specified in the `Inkfile` without units or as `px` will always be absolute number of pixels in output image and will not change depending on scale and dpi.
 
 If you don't specify any resolution the resolution and units will depend on how its defined in the SVG file. In the case of SVG files saved by Inkscape this is most likely user units which is defined as pixels at 90dpi which inkmake will translate to absolute depending on scale and dpi if specified.
+
+### Development
+
+    RUBYLIB=lib bin/inkmake test/Inkfile
 
 ### TODO
 
