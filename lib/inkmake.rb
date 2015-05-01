@@ -171,7 +171,11 @@ class Inkmake
           "--export-png" => Tempfile.new("inkmake").path,
           "--export-area" => "0.0:0.0:1.0:1.0",
         })
-        response
+        loop do
+          case response
+          when :prompt then break
+          end
+        end
         @decimal_symbol = "."
       rescue EOFError
         @decimal_symbol = ","
