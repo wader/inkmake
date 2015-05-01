@@ -42,6 +42,7 @@ require "fileutils"
 require "tempfile"
 require "uri"
 require "pathname"
+require "rbconfig"
 
 class Inkmake
   @verbose = false
@@ -120,8 +121,18 @@ class Inkmake
       quit
     end
 
+    def is_windows
+      @is_windows ||= (RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/) != nil
+    end
+
     def open
-      @in, @out, @err = Open3.popen3(*[self.class.path, "--shell"])
+      if is_windows
+        # Inkscape on Windows for some reason needs to run from its binary dir
+        @in, @out, @err = Open3.popen3(*[File.basename(self.class.path), "--shell"],
+                                       :chdir => File.dirname(self.class.path))
+      else
+        @in, @out, @err = Open3.popen3(*[self.class.path, "--shell"])
+      end
       loop do
         case response
         when :prompt then break
