@@ -262,7 +262,7 @@ class Inkmake
     end
 
     def self.escape(s)
-      s.gsub(/(["'])/, '\\\\\1')
+      s.gsub(/([\\"'])/, '\\\\\1')
     end
 
     def self.path

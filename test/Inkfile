@@ -45,3 +45,8 @@ layers_drawing.png "-Layer 2" layers.svg drawing
 id_hide_g2.png -#g2 ids.svg
 id_hide_id3.png -#id3 ids.svg
 
+"test quote.png" test.svg
+"test ""quote"".png" test.svg
+# test wont work on windows
+#"test \quote\.png" test.svg
+
