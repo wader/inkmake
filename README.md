@@ -29,6 +29,16 @@ With inkmake you describe what you want to export and how using a `Inkfile` and 
     # read SVG files from to the directory "resources" relative to the Inkfile
     svg: resources
 
+### Run using docker
+
+This should work on Linux and macOS. Windows might need some other volume arguments.
+
+```sh
+docker run --rm -v "$PWD:$PWD" -w "$PWD" mwader/inkmake
+```
+
+Image is built using [Dockerfile](Dockerfile) and can be found on docker hub at https://hub.docker.com/r/mwader/inkmake/
+
 ### Requirements
 
 Make sure Inkscape is installed.
