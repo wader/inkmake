@@ -113,8 +113,11 @@ class Inkmake
   end
 
   class InkscapeRemote
+    attr_reader :inkscape_version
+
     def initialize
-      open
+      @inkscape_version = probe_inkscape_version
+      open_shell
       probe_decimal_symbol
       yield self
     ensure
@@ -125,14 +128,20 @@ class Inkmake
       @is_windows ||= (RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/) != nil
     end
 
-    def open
+    def open(args)
       if is_windows
-        # Inkscape on Windows for some reason needs to run from its binary dir
-        @in, @out, @err = Open3.popen3(*[File.basename(self.class.path), "--shell"],
+        # Inkscape on Windows for some reason needs to run from its binary dir.
+        # popen2e so get stdout and stderr in one pipe. inkscape 1 shell seems to
+        # use both as output and we need to read to not block it.
+        Open3.popen2e(*[File.basename(self.class.path)] + args,
                                        :chdir => File.dirname(self.class.path))
       else
-        @in, @out, @err = Open3.popen3(*[self.class.path, "--shell"])
+        Open3.popen2e(*[self.class.path] + args)
       end
+    end
+
+    def open_shell
+      @in, @out = open(["--shell"])
       loop do
         case response
         when :prompt then break
@@ -140,7 +149,7 @@ class Inkmake
       end
     end
 
-    def command(args)
+    def command0(args)
       c = args.collect do |key, value|
         if value
           "\"#{key}=#{self.class.escape value.to_s}\""
@@ -148,20 +157,58 @@ class Inkmake
           key
         end
       end.join(" ")
-      puts "> #{c}" if Inkmake.verbose
+      puts "< #{c}" if Inkmake.verbose
+      @in.write "#{c}\n"
+      @in.flush
+    end
+
+    def command1(args)
+      c = args.collect do |key, value|
+        if value
+          "#{key}:#{value.to_s}"
+        else
+          "#{key}:"
+        end
+      end.join("\n")
+      puts "< #{c}" if Inkmake.verbose
       @in.write "#{c}\n"
       @in.flush
     end
 
     def response
-      o = @out.read(1)
-      if o == ">"
-        puts "< #{o}" if Inkmake.verbose
-        return :prompt;
+      if @inkscape_version == 0
+        o = @out.read(1)
+        if o == ">"
+          puts "1> #{o}" if Inkmake.verbose
+          return :prompt;
+        end
+      else
+        o = @out.read(2)
+        if o == "> "
+          puts "1> #{o}" if Inkmake.verbose
+          return :prompt;
+        end
       end
       o = o + @out.readline
-      puts "< #{o}" if Inkmake.verbose
+      puts "2> #{o}" if Inkmake.verbose
       o
+    end
+
+    def probe_inkscape_version
+      _in, out = open(["--version"])
+      version = 0
+      begin
+        loop do
+          case out.readline()
+          when /^\s*Inkscape 1\..*$/ then
+            version = 1
+          when /^\s*Inkscape 0\..*$/ then
+            version = 0
+          end
+        end
+      rescue EOFError
+      end
+      version
     end
 
     # this is weird but is the least weird and most protable way i could come up with
@@ -169,33 +216,35 @@ class Inkmake
     # forcing LC_NUMERIC=C seems hard to do in a portable way
     # trying to use env inkmake is running in is also not so portable (windows?)
     def probe_decimal_symbol
+      @decimal_symbol = "."
       svg =
         "<?xml version=\"1.0\"?>" +
         "<svg xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"1\" height=\"1\">" +
         "</svg>"
-      f = Tempfile.new("inkmake")
+      f = Tempfile.new(["inkmake", ".svg"])
       f.write(svg)
       f.flush
       begin
-        command({
-          "--file" => f.path,
-          "--export-png" => Tempfile.new("inkmake").path,
-          "--export-area" => "0.0:0.0:1.0:1.0",
+        # this will try export with "." as symbol in area
+        export({
+          :svg_path => f.path,
+          :out_path => Tempfile.new(["inkmake", ".png"]).path,
+          :format => "png",
+          :area => [0.0, 0.0, 1.0, 1.0]
         })
         loop do
           case response
           when :prompt then break
           end
         end
-        @decimal_symbol = "."
       rescue EOFError
         @decimal_symbol = ","
         # restart inkscape
-        open
+        open_shell
       end
     end
 
-    def export(opts)
+    def export0(opts)
       c = {
         "--file" => opts[:svg_path],
         "--export-#{opts[:format]}" => opts[:out_path]
@@ -215,13 +264,13 @@ class Inkmake
       elsif opts[:area].kind_of? String
         c["--export-id"] = opts[:area]
       end
-      command(c)
+      command0(c)
       width, height = [0, 0]
-      out = nil
+      #out = nil
       loop do
         case response
-        when /^Bitmap saved as: (.*)$/ then
-          out = $1
+        # when /^Bitmap saved as: (.*)$/ then
+        #   out = $1
         when /^Area .* exported to (\d+) x (\d+) pixels.*$/ then
           width = $1
           height = $2
@@ -232,17 +281,88 @@ class Inkmake
       [width, height]
     end
 
+    def export1(opts)
+      c = [
+        ["file-open", opts[:svg_path]],
+        ["export-type", opts[:format]],
+        ["export-filename", opts[:out_path]]
+      ]
+      if opts[:res]
+        s = opts[:rotate_scale_hack] ? 2 : 1
+        c += [["export-width", opts[:res].width.to_pixels(opts[:dpi] || 90) * s]]
+        c += [["export-height", opts[:res].height.to_pixels(opts[:dpi] || 90) * s]]
+      else
+        c += [["export-width", ""]]
+        c += [["export-height", ""]]
+      end
+      if opts[:dpi]
+        c += [["export-dpi", opts[:dpi]]]
+      end
+
+      c += [["export-area", ""]]
+      c += [["export-area-drawing", "false"]]
+      c += [["export-id", ""]]
+      c += [["export-area-page", "false"]]
+
+      if opts[:area].kind_of? Array
+        c += [["export-area", ("%f:%f:%f:%f" % opts[:area]).gsub(".", @decimal_symbol)]]
+      elsif opts[:area] == :drawing
+        c += [["export-area-drawing", "true"]]
+      elsif opts[:area].kind_of? String
+        c += [["export-id", opts[:area]]]
+      else
+        c += [["export-area-page", "true"]]
+      end
+      c.each do |a|
+        command1([a])
+        response
+      end
+
+      command1([["export-do"]])
+      width, height = [0, 0]
+      loop do
+        case response
+        when /^Area .* exported to (\d+) x (\d+) pixels.*$/ then
+          width = $1
+          height = $2
+        when :prompt then break
+        end
+      end
+      command1([["file-close"]])
+      response
+
+      [width, height]
+    end
+
+    def export(opts)
+      if @inkscape_version == 0 then
+        export0(opts)
+      else
+        export1(opts)
+      end
+    end
+
     def query_all(file)
       ids = []
-      command({
-        "--file" => file,
-        "--query-all" => nil,
-      })
+      if @inkscape_version == 0 then
+        command0({
+          "--file" => file,
+          "--query-all" => nil,
+        })
+      else
+        command1([["file-open", file]])
+        response
+        command1([["query-all", file]])
+      end
       loop do
         case response
         when /^(.*),(.*),(.*),(.*),(.*)$/ then ids << [$1, $2.to_f, $3.to_f, $4.to_f, $5.to_f]
         when :prompt then break
         end
+      end
+      if @inkscape_version == 1 then
+        command1([["file-close", file]])
+        response
       end
       ids
     end
@@ -256,7 +376,11 @@ class Inkmake
     end
 
     def quit
-      command({"quit" => nil})
+      if @inkscape_version == 0 then
+        command0({"quit" => nil})
+      else
+        @in.close
+      end
       @out.read
       nil
     end
@@ -269,8 +393,9 @@ class Inkmake
       return Inkmake.inkscape_path if Inkmake.inkscape_path
 
       # try to figure out inkscape path
-      p = (
-        (["/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
+      p = ( 
+        (["/Applications/Inkscape.app/Contents/MacOS/inkscape",
+          "/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
           'c:\Program Files\Inkscape\inkscape.exe',
           'c:\Program Files (x86)\Inkscape\inkscape.exe'] +
           (ENV['PATH'].split(':').map {|p| File.join(p, "inkscape")}))
@@ -283,7 +408,12 @@ class Inkmake
       else
         begin
           require "osx/cocoa"
-          "#{OSX::NSWorkspace.sharedWorkspace.fullPathForApplication:"Inkscape"}/Contents/Resources/bin/inkscape"
+          app_path = OSX::NSWorkspace.sharedWorkspace.fullPathForApplication:"Inkscape"
+          ["#{app_path}/Contents/MacOS/inkscape",
+           "#{app_path}/Contents/Resources/bin/inkscape"]
+          .select do |path|
+            File.exists? path
+          end
         rescue NameError, LoadError
           nil
         end
@@ -303,29 +433,29 @@ class Inkmake
     }
     # 123x123, 12.3cm*12.3cm
     RES_RE = /^(\d+(?:\.\d+)?(?:px|pt|pc|mm|cm|dm|m|in|ft|uu)?)[x*](\d+(?:\.\d+)?(?:px|pt|pc|mm|cm|dm|m|in|ft|uu)?)$/
-      # *123, *1.23
-      SCALE_RE = /^\*(\d+(?:\.\d+)?)$/
-      # 180dpi
-      DPI_RE = /^(\d+(?:\.\d+)?)dpi$/i
+    # *123, *1.23
+    SCALE_RE = /^\*(\d+(?:\.\d+)?)$/
+    # 180dpi
+    DPI_RE = /^(\d+(?:\.\d+)?)dpi$/i
     # (prefix)[(...)](suffix)
     DEST_RE = /^([^\[]*)(?:\[(.*)\])?(.*)$/
-      # test.svg, test.SVG
-      SVG_RE = /\.svg$/i
+    # test.svg, test.SVG
+    SVG_RE = /\.svg$/i
     # ext to format, supported inkscape output formats
     EXT_RE = /\.(png|pdf|ps|eps)$/i
     # supported inkscape output formats
     FORMAT_RE = /^(png|pdf|ps|eps)$/i
     # @name
     AREA_NAME_RE = /^@(.*)$/
-      # @x:y:w:h
-      AREA_SPEC_RE = /^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
-      # right, left, upsidedown
-      ROTATE_RE = /^(right|left|upsidedown)$/
-      # show/hide layer or id, "+Layer 1", +#id, -*
-      SHOWHIDE_RE = /^([+-])(.+)$/
+    # @x:y:w:h
+    AREA_SPEC_RE = /^@(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/
+    # right, left, upsidedown
+    ROTATE_RE = /^(right|left|upsidedown)$/
+    # show/hide layer or id, "+Layer 1", +#id, -*
+    SHOWHIDE_RE = /^([+-])(.+)$/
 
-      class SyntaxError < StandardError
-      end
+    class SyntaxError < StandardError
+    end
 
     class ProcessError < StandardError
     end
@@ -363,7 +493,7 @@ class Inkmake
       if RUBY_VERSION.start_with? "1.8"
         CSV::parse_line(line, fs = " ")
       else
-        CSV::parse_line(line, {:col_sep => " "})
+        CSV::parse_line(line, **{:col_sep => " "})
       end
     end
 
@@ -468,16 +598,17 @@ class Inkmake
       else
         out_width, out_height = width, height
       end
+      file_href = "file://#{path}"
       svg =
         "<?xml version=\"1.0\"?>" +
         "<svg xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"#{out_width}\" height=\"#{out_height}\">" +
         "<g>" +
         "<image transform=\"translate(#{out_width/2} #{out_height/2}) rotate(#{degrees})\"" +
         "  width=\"#{width}\" height=\"#{height}\" x=\"#{-width/2}\" y=\"#{-height/2}\"" +
-          "  xlink:href=\"file:///#{URI.escape(path)}\" />" +
+          "  xlink:href=#{file_href.encode(:xml => :attr)} />" +
         "</g>" +
           "</svg>"
-        f = Tempfile.new("inkmake")
+        f = Tempfile.new(["inkmake", ".svg"])
         f.write(svg)
         f.flush
         f.seek(0)
@@ -679,7 +810,7 @@ class Inkmake
             end
           end
 
-          f = Tempfile.new("inkmake")
+          f = Tempfile.new(["inkmake", ".svg"])
           doc.write(:output => f)
           f.flush
           f
