@@ -118,7 +118,7 @@ class Inkmake
     def initialize
       @inkscape_version = probe_inkscape_version
       open_shell
-      probe_decimal_symbol
+      probe_decimal_symbol if @inkscape_version == 0
       yield self
     ensure
       quit
