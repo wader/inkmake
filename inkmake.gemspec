@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = "inkmake"
-  s.version     = "0.1.3"
+  s.version     = "0.1.4"
   s.summary     = "Makefile inspired export from SVG files using Inkscape as backend with some added smartness"
   s.license     = "MIT"
   s.authors     = ["Mattias Wadman"]
