@@ -43,7 +43,8 @@ Image is built using [Dockerfile](Dockerfile) and can be found on docker hub at 
 
 Make sure Inkscape is installed.
 
-On Mac OS X, Linux and BSD Ruby might already be installed by default. If not use homebrew, apt, ports, etc to install it.
+On  macOS, Linux and BSD Ruby might already be installed by default. If not use homebrew, apt, ports, etc to install it.
+On macOS make sure to start and verify the application before using inkmake.
 
 On Windows you can use [Ruby installer](http://rubyinstaller.org).
 
