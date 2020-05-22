@@ -118,7 +118,6 @@ class Inkmake
     def initialize
       @inkscape_version = probe_inkscape_version
       open_shell
-      probe_decimal_symbol if @inkscape_version == 0
       yield self
     ensure
       quit
@@ -211,39 +210,6 @@ class Inkmake
       version
     end
 
-    # this is weird but is the least weird and most protable way i could come up with
-    # to figuring out what decimal symbol to use.
-    # forcing LC_NUMERIC=C seems hard to do in a portable way
-    # trying to use env inkmake is running in is also not so portable (windows?)
-    def probe_decimal_symbol
-      @decimal_symbol = "."
-      svg =
-        "<?xml version=\"1.0\"?>" +
-        "<svg xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"1\" height=\"1\">" +
-        "</svg>"
-      f = Tempfile.new(["inkmake", ".svg"])
-      f.write(svg)
-      f.flush
-      begin
-        # this will try export with "." as symbol in area
-        export({
-          :svg_path => f.path,
-          :out_path => Tempfile.new(["inkmake", ".png"]).path,
-          :format => "png",
-          :area => [0.0, 0.0, 1.0, 1.0]
-        })
-        loop do
-          case response
-          when :prompt then break
-          end
-        end
-      rescue EOFError
-        @decimal_symbol = ","
-        # restart inkscape
-        open_shell
-      end
-    end
-
     def export0(opts)
       c = {
         "--file" => opts[:svg_path],
@@ -258,7 +224,7 @@ class Inkmake
         c["--export-dpi"] = opts[:dpi]
       end
       if opts[:area].kind_of? Array
-        c["--export-area"] = ("%f:%f:%f:%f" % opts[:area]).gsub(".", @decimal_symbol)
+        c["--export-area"] = ("%f:%f:%f:%f" % opts[:area])
       elsif opts[:area] == :drawing
         c["--export-area-drawing"] = nil
       elsif opts[:area].kind_of? String
@@ -266,11 +232,8 @@ class Inkmake
       end
       command0(c)
       width, height = [0, 0]
-      #out = nil
       loop do
         case response
-        # when /^Bitmap saved as: (.*)$/ then
-        #   out = $1
         when /^Area .* exported to (\d+) x (\d+) pixels.*$/ then
           width = $1
           height = $2
@@ -305,7 +268,7 @@ class Inkmake
       c += [["export-area-page", "false"]]
 
       if opts[:area].kind_of? Array
-        c += [["export-area", ("%f:%f:%f:%f" % opts[:area]).gsub(".", @decimal_symbol)]]
+        c += [["export-area", ("%f:%f:%f:%f" % opts[:area])]]
       elsif opts[:area] == :drawing
         c += [["export-area-drawing", "true"]]
       elsif opts[:area].kind_of? String
