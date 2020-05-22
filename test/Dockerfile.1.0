@@ -6,11 +6,4 @@ RUN \
     ruby \
     fonts-noto \
     locales
-COPY . .
-RUN \
-    locale -a && \
-    locale-gen sv_SE.UTF-8
-RUN \
-    gem build inkmake.gemspec && \
-    gem install inkmake
 ENTRYPOINT ["inkmake"]
