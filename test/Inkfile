@@ -24,7 +24,9 @@ test-page[@2x|-scale3right=*3,right].png test.svg
 test-drawing[@2x|-scale3right=*3,right].png test.svg drawing
 test-id-upper[@2x|-scale3right=*3,right].png test.svg @upper
 test-id-lower[@2x|-scale3right=*3,right].png test.svg @lower
-test-area[@2x|-scale3right=*3,right].png test.svg @0:25:100:75
+
+# disabled for now https://gitlab.com/inkscape/inkscape/-/issues/1475
+#test-area[@2x|-scale3right=*3,right].png test.svg @0:25:100:75
 
 # units
 test[@2x|180=180dpi|270=270dpi]dpi.png test.svg 100dpi
