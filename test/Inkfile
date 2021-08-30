@@ -9,6 +9,9 @@ test.eps
 # force format
 testpng test.svg png
 
+# test multi space separator
+test_multispace.png   test.svg
+
 # res
 test-scale2[@2x|25=*2.5].png test.svg *2
 test-200x200[@2x].png test.svg 200x200

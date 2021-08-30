@@ -457,10 +457,11 @@ class Inkmake
 
     def parse_split_line(line)
       # changed CSV API in ruby 1.9
+      # - [nil] to remove empty fields
       if RUBY_VERSION.start_with? "1.8"
-        CSV::parse_line(line, fs = " ")
+        CSV::parse_line(line, fs = " ") - [nil]
       else
-        CSV::parse_line(line, **{:col_sep => " "})
+        CSV::parse_line(line, **{:col_sep => " "}) - [nil]
       end
     end
 
