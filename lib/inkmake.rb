@@ -141,13 +141,13 @@ class Inkmake
 
     def response
       if @inkscape_version == 0
-        o = @out.read(1)
+        o = @out.getc
         if o == ">"
           puts "1> #{o}" if Inkmake.verbose
           return :prompt;
         end
       else
-        o = @out.read(2)
+        o = @out.getc + @out.getc
         if o == "> "
           puts "1> #{o}" if Inkmake.verbose
           return :prompt;
