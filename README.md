@@ -210,7 +210,16 @@ If you don't specify any resolution the resolution and units will depend on how 
 
 ### Development
 
-    RUBYLIB=lib bin/inkmake test/Inkfile
+```sh
+RUBYLIB=lib bin/inkmake test/Inkfile
+```
+
+```sh
+# increase version in inkmake.gemspec
+gem build inkmake.gemspec
+gem push inkmake-0.1.6.gem
+```
+
 
 ### TODO
 
