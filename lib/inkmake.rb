@@ -139,13 +139,36 @@ class Inkmake
       end
     end
 
-    def open_shell
-      @in, @out = open(["--shell"])
+    def response
+      if @inkscape_version == 0
+        o = @out.read(1)
+        if o == ">"
+          puts "1> #{o}" if Inkmake.verbose
+          return :prompt;
+        end
+      else
+        o = @out.read(2)
+        if o == "> "
+          puts "1> #{o}" if Inkmake.verbose
+          return :prompt;
+        end
+      end
+      o = o + @out.readline
+      puts "2> '#{o}'" if Inkmake.verbose
+      o
+    end
+
+    def wait_prompt
       loop do
         case response
         when :prompt then break
         end
       end
+    end
+
+    def open_shell
+      @in, @out = open(["--shell"])
+      wait_prompt
     end
 
     def command0(args)
@@ -172,25 +195,6 @@ class Inkmake
       puts "< #{c}" if Inkmake.verbose
       @in.write "#{c}\n"
       @in.flush
-    end
-
-    def response
-      if @inkscape_version == 0
-        o = @out.read(1)
-        if o == ">"
-          puts "1> #{o}" if Inkmake.verbose
-          return :prompt;
-        end
-      else
-        o = @out.read(2)
-        if o == "> "
-          puts "1> #{o}" if Inkmake.verbose
-          return :prompt;
-        end
-      end
-      o = o + @out.readline
-      puts "2> #{o}" if Inkmake.verbose
-      o
     end
 
     def probe_inkscape_version
@@ -278,7 +282,7 @@ class Inkmake
       end
       c.each do |a|
         command1([a])
-        response
+        wait_prompt
       end
 
       command1([["export-do"]])
@@ -292,7 +296,7 @@ class Inkmake
         end
       end
       command1([["file-close"]])
-      response
+      wait_prompt
 
       [width, height]
     end
@@ -314,7 +318,7 @@ class Inkmake
         })
       else
         command1([["file-open", file]])
-        response
+        wait_prompt
         command1([["query-all", file]])
       end
       loop do
@@ -325,7 +329,7 @@ class Inkmake
       end
       if @inkscape_version == 1 then
         command1([["file-close", file]])
-        response
+        wait_prompt
       end
       ids
     end
