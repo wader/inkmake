@@ -364,7 +364,9 @@ class Inkmake
         (["/Applications/Inkscape.app/Contents/MacOS/inkscape",
           "/Applications/Inkscape.app/Contents/Resources/bin/inkscape",
           'c:\Program Files\Inkscape\inkscape.exe',
-          'c:\Program Files (x86)\Inkscape\inkscape.exe'] +
+          'c:\Program Files\Inkscape\bin\inkscape.exe',
+          'c:\Program Files (x86)\Inkscape\inkscape.exe',
+          'c:\Program Files (x86)\Inkscape\bin\inkscape.exe'] +
           (ENV['PATH'].split(':').map {|p| File.join(p, "inkscape")}))
         .select do |path|
           File.exists? path
